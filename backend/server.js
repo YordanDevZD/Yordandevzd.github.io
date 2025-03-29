@@ -12,63 +12,76 @@ const io = new Server(server, {
   },
 });
 
-// Almacenar mensajes con estructura mejorada
 let messages = [];
-
-// Objeto para control de mensajes duplicados
 const messageRegistry = new Set();
 
+// Función para crear mensajes del servidor
+function createServerMessage(text) {
+  return {
+    id: `server-${Date.now()}`,
+    user: 'SERVIDOR',
+    text: text,
+    time: new Date().toISOString(),
+    isServerMessage: true
+  };
+}
+
 io.on('connection', (socket) => {
-  console.log('Usuario conectado:', socket.id);
+  // Obtener nombre de usuario (puedes enviarlo desde el cliente al conectar)
+  let username = 'Anónimo';
+  
+  // Escuchar cuando el cliente envíe su nombre de usuario
+  socket.on('set-username', (name) => {
+    username = name || 'Anónimo';
+    
+    // Crear y enviar mensaje de conexión
+    const connectionMessage = createServerMessage(`Usuario ${username} se ha unido a la conversación`);
+    
+    // Guardar y difundir el mensaje
+    messages.push(connectionMessage);
+    io.emit('new-message', connectionMessage);
+    
+    console.log(`Usuario conectado: ${username} (${socket.id})`);
+  });
 
   // Enviar historial de mensajes
   socket.emit('previous-messages', messages);
 
-  // Manejar nuevos mensajes
   socket.on('send-message', (data) => {
-    // Verificar si el mensaje ya fue procesado
-    if (messageRegistry.has(data.id)) {
-      return;
-    }
-
-    // Validar estructura del mensaje
-    if (!data.id || !data.user || !data.text || !data.time) {
-      console.error('Mensaje con estructura inválida:', data);
-      return;
-    }
-
-    // Registrar mensaje
-    messageRegistry.add(data.id);
+    if (messageRegistry.has(data.id)) return;
     
-    // Agregar a historial (limitamos a 100 mensajes)
-    messages.push(data);
-    if (messages.length > 100) {
-      messages.shift(); // Eliminar el mensaje más antiguo
+    if (!data.id || !data.user || !data.text || !data.time) {
+      console.error('Mensaje inválido:', data);
+      return;
     }
 
-    // Retransmitir con la misma data (incluyendo el ID)
+    messageRegistry.add(data.id);
+    messages.push(data);
+    
+    if (messages.length > 100) messages.shift();
+    
     io.emit('new-message', data);
   });
 
-  // Manejar desconexión
   socket.on('disconnect', () => {
-    console.log('Usuario desconectado:', socket.id);
+    if (username) {
+      const disconnectMessage = createServerMessage(`Usuario ${username} ha abandonado la conversación`);
+      messages.push(disconnectMessage);
+      io.emit('new-message', disconnectMessage);
+    }
+    console.log(`Usuario desconectado: ${username || 'Anónimo'} (${socket.id})`);
   });
 
-  // Limpiar registry periódicamente para evitar crecimiento infinito
+  // Limpieza periódica
   setInterval(() => {
     const now = Date.now();
-    const oneHour = 3600000;
-    
-    // Eliminar IDs de mensajes muy antiguos del registry
     messages = messages.filter(msg => {
       const msgTime = new Date(msg.time).getTime();
-      return (now - msgTime) < oneHour;
+      return (now - msgTime) < 3600000; // 1 hora
     });
-  }, 3600000); // Cada hora
+  }, 3600000);
 });
 
-// Endpoint de salud para monitoreo
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -77,9 +90,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Iniciar servidor
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Servidor en puerto ${PORT}`);
-  console.log(`Modo CORS para: https://yordandevzd-github-io.onrender.com`);
 });

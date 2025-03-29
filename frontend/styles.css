@@ -4,6 +4,7 @@
   --background-color: #F4F7FC;
   --message-sent: #E3F2FD;
   --message-received: #FFFFFF;
+  --server-message: #f0f0f0;
   --text-color: #2D3748;
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
@@ -108,6 +109,16 @@ body {
   box-shadow: var(--shadow);
 }
 
+.message.server {
+  background: var(--server-message);
+  align-self: center;
+  text-align: center;
+  border-left: 4px solid var(--primary-color);
+  font-style: italic;
+  color: #555;
+  max-width: 80%;
+}
+
 .message-info {
   display: flex;
   justify-content: space-between;
@@ -120,6 +131,11 @@ body {
   color: var(--primary-color);
 }
 
+.message.server .message-user {
+  color: var(--primary-color);
+  font-style: normal;
+}
+
 .message-time {
   font-size: 0.75rem;
   color: #718096;
@@ -128,11 +144,20 @@ body {
 .message-text {
   color: var(--text-color);
   line-height: 1.4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  padding: 5px 0;
+}
+
+.message.server .message-text {
+  text-align: center;
 }
 
 .chat-input {
   padding: 1.5rem;
   border-top: 1px solid #EDF2F7;
+  position: relative;
 }
 
 .input-container {
@@ -148,6 +173,10 @@ input {
   border-radius: 25px;
   font-size: 1rem;
   transition: all 0.3s ease;
+  min-height: 50px;
+  max-height: 150px;
+  resize: none;
+  line-height: 1.4;
 }
 
 input:focus {
@@ -213,5 +242,9 @@ input:focus {
   
   .message {
       max-width: 85%;
+  }
+  
+  .message.server {
+      max-width: 90%;
   }
 }

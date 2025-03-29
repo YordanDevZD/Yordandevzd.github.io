@@ -11,25 +11,62 @@ const user = prompt('¿Cuál es tu nombre?') || 'Anónimo';
 // Variable para controlar mensajes pendientes
 let pendingMessages = new Set();
 
+// Enviar el nombre de usuario al servidor
+socket.emit('set-username', user);
+
+// Función para formatear texto con saltos de línea automáticos
+function formatText(text) {
+    const maxCharsPerLine = 45;
+    let result = '';
+    let currentLineLength = 0;
+
+    // Conservar saltos de línea existentes primero
+    const paragraphs = text.split('\n');
+    
+    paragraphs.forEach((paragraph, pIndex) => {
+        if (pIndex > 0) result += '\n';
+        
+        const words = paragraph.split(' ');
+        words.forEach(word => {
+            if (currentLineLength + word.length > maxCharsPerLine) {
+                result += '\n';
+                currentLineLength = 0;
+            } else if (currentLineLength > 0) {
+                result += ' ';
+                currentLineLength++;
+            }
+            result += word;
+            currentLineLength += word.length;
+        });
+    });
+
+    return result;
+}
+
 // Función para crear elementos de mensaje
 function createMessageElement(data, isSent = true) {
     const messageElement = document.createElement('div');
-    messageElement.classList.add('message', isSent ? 'sent' : 'received');
+    const isServerMessage = data.user === 'SERVIDOR';
     
-    const time = new Date().toLocaleTimeString([], { 
+    messageElement.classList.add('message', 
+        isServerMessage ? 'server' : 
+        isSent ? 'sent' : 'received');
+    
+    const time = new Date(data.time).toLocaleTimeString([], { 
         hour: '2-digit', 
         minute: '2-digit' 
     });
 
+    const formattedText = formatText(data.text).replace(/\n/g, '<br>');
+
     messageElement.innerHTML = `
         <div class="message-info">
-            <span class="message-user">${isSent ? 'Tú' : data.user}</span>
+            <span class="message-user">${isServerMessage ? data.user : (isSent ? 'Tú' : data.user)}</span>
             <span class="message-time">${time}</span>
         </div>
-        <div class="message-text">${data.text}</div>
+        <div class="message-text">${formattedText}</div>
     `;
 
-    // Agregar ID único al elemento del mensaje
     if (data.id) {
         messageElement.dataset.messageId = data.id;
     }
@@ -39,13 +76,13 @@ function createMessageElement(data, isSent = true) {
 
 // Escuchar nuevos mensajes del servidor
 socket.on('new-message', (data) => {
-    // Verificar si el mensaje es del usuario actual y ya fue mostrado
     if (data.user === user && pendingMessages.has(data.id)) {
         pendingMessages.delete(data.id);
         return;
     }
     
-    const messageElement = createMessageElement(data, data.user === user);
+    const isSent = data.user === user;
+    const messageElement = createMessageElement(data, isSent);
     messagesDiv.appendChild(messageElement);
     scrollToBottom();
 });
@@ -53,7 +90,8 @@ socket.on('new-message', (data) => {
 // Escuchar mensajes anteriores
 socket.on('previous-messages', (msgs) => {
     msgs.forEach(msg => {
-        const messageElement = createMessageElement(msg, msg.user === user);
+        const isSent = msg.user === user;
+        const messageElement = createMessageElement(msg, isSent);
         messagesDiv.appendChild(messageElement);
     });
     scrollToBottom();
@@ -63,24 +101,21 @@ socket.on('previous-messages', (msgs) => {
 function sendMessage() {
     const text = messageInput.value.trim();
     if (text) {
+        const cleanedText = text.replace(/\s+/g, ' ').replace(/\n+/g, '\n');
+        
         const messageData = {
             user,
-            text,
-            id: Date.now().toString(), // ID único para el mensaje
+            text: cleanedText,
+            id: Date.now().toString(),
             time: new Date().toISOString()
         };
         
-        // Agregar a mensajes pendientes
         pendingMessages.add(messageData.id);
-        
-        // Mostrar mensaje localmente
         const messageElement = createMessageElement(messageData, true);
         messagesDiv.appendChild(messageElement);
         scrollToBottom();
         
-        // Enviar al servidor
         socket.emit('send-message', messageData);
-        
         messageInput.value = '';
     }
 }
@@ -92,7 +127,16 @@ function scrollToBottom() {
 
 // Enviar mensaje al presionar Enter
 messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
         sendMessage();
+    }
+});
+
+// Permitir Shift+Enter para saltos de línea manuales
+messageInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.shiftKey) {
+        e.preventDefault();
+        messageInput.value += '\n';
     }
 });
