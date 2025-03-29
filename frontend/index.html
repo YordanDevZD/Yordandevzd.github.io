@@ -1,19 +1,41 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <title>Chat con Socket.io</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="chat-container">
-    <div id="messages"></div>
-    <div class="input-container">
-      <input type="text" id="messageInput" placeholder="Escribe un mensaje...">
-      <button onclick="sendMessage()">Enviar</button>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-content">
+                <i class="fas fa-comments"></i>
+                <h1>Professional Chat</h1>
+                <div class="online-status">
+                    <span class="status-dot"></span>
+                    <span id="online-count">0</span> online
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="messages"></div>
+
+        <div class="chat-input">
+            <div class="input-container">
+                <input type="text" id="messageInput" placeholder="Escribe tu mensaje...">
+                <button class="send-button" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="input-footer">
+                <small>Presiona Enter para enviar</small>
+            </div>
+        </div>
     </div>
-  </div>
-  <!-- Socket.io desde CDN -->
-  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-  <script src="script.js"></script>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
