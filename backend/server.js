@@ -7,7 +7,7 @@ const server = http.createServer(app);
 // Configurar CORS para permitir tu frontend en Render
 const io = new Server(server, {
   cors: {
-    origin: '*', // Cambia esto a la URL de tu frontend en producción
+    origin: 'https://yordandevzd-github-io.onrender.com', // Cambia esto a la URL de tu frontend en producción
     methods: ['GET', 'POST'],
   },
 });
