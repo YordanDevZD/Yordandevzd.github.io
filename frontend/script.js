@@ -1,5 +1,5 @@
 // Reemplaza con la URL de tu backend en Render
-const socket = io('https://tu-backend.onrender.com');
+const socket = io('https://chat-backend-bpnz.onrender.com');
 
 // Elementos del DOM
 const messagesDiv = document.getElementById('messages');
