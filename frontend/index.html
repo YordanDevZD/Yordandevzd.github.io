@@ -1,42 +1,33 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BubbleTalk - Inicio</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat en Tiempo Real</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="header-content">
-                <i class="fas fa-comments"></i>
-                <h1>BubbleTalk</h1> 
-                <p>Beta - 0.2.6</p>
-                <div class="online-status">
-                <span class="status-dot"></span>
-                <span id="online-count">0</span> online
-                </div>
-            </div>
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="header-content">
+        <h1>Chat App</h1>
+        <div class="online-status">
+          <span class="status-dot"></span>
+          <span id="online-count">0</span> conectados
         </div>
-
-        <div class="chat-messages" id="messages"></div>
-
-        <div class="chat-input">
-            <div class="input-container">
-                <input type="text" id="messageInput" placeholder="Escribe tu mensaje...">
-                <button class="send-button" onclick="sendMessage()">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            </div>
-            <div class="input-footer">
-                <small>Presiona Enter para enviar</small>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    <script src="script.js"></script>
+    <div class="chat-messages" id="messages"></div>
+
+    <div class="chat-input">
+      <div class="input-container">
+        <input type="text" id="messageInput" placeholder="Escribe tu mensaje..." autocomplete="off">
+        <button onclick="sendMessage()">Enviar</button>
+      </div>
+    </div>
+  </div>
+  <script src="script.js"></script>
 </body>
 </html>

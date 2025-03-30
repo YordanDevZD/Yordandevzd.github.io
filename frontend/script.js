@@ -1,113 +1,95 @@
-// Conectar al servidor Socket.io
-const socket = io('https://chat-backend-bpnz.onrender.com');
-
-// Elementos del DOM
-const messagesDiv = document.getElementById('messages');
-const messageInput = document.getElementById('messageInput');
-
-// Pedir nombre de usuario
-const user = prompt('¿Cuál es tu nombre?') || 'Anónimo';
-
-// Variable para controlar mensajes pendientes
-let pendingMessages = new Set();
-
-// Enviar el nombre de usuario al servidor
-socket.emit('set-username', user);
-
-// Función para formatear texto con saltos de línea automáticos
-function formatText(text) {
-    const maxCharsPerLine = 45;
-    let result = '';
-    let currentLineLength = 0;
-
-    // Conservar saltos de línea existentes primero
-    const paragraphs = text.split('\n');
+document.addEventListener('DOMContentLoaded', () => {
+    const socket = io('https://tu-app-backend.herokuapp.com');
+    const messagesDiv = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+    const onlineCount = document.getElementById('online-count');
     
-    paragraphs.forEach((paragraph, pIndex) => {
-        if (pIndex > 0) result += '\n';
-        
-        const words = paragraph.split(' ');
-        words.forEach(word => {
-            if (currentLineLength + word.length > maxCharsPerLine) {
-                result += '\n';
-                currentLineLength = 0;
-            } else if (currentLineLength > 0) {
-                result += ' ';
-                currentLineLength++;
-            }
-            result += word;
-            currentLineLength += word.length;
-        });
-    });
-
-    return result;
-}
-
-// Función para crear elementos de mensaje
-function createMessageElement(data, isSent = true) {
-    const messageElement = document.createElement('div');
-    const isServerMessage = data.user === 'SERVIDOR';
-    
-    messageElement.classList.add('message', 
+    let user = localStorage.getItem('chat-username') || '';
+    let pendingMessages = new Set();
+  
+    if (!user) {
+      user = prompt('Ingresa tu nombre:') || 'Anónimo';
+      localStorage.setItem('chat-username', user);
+      socket.emit('set-username', user);
+    } else {
+      socket.emit('set-username', user);
+    }
+  
+    function createMessageElement(data, isSent = true) {
+      const messageElement = document.createElement('div');
+      const isServerMessage = data.user === 'SERVIDOR';
+      
+      messageElement.classList.add('message', 
         isServerMessage ? 'server' : 
         isSent ? 'sent' : 'received');
-    
-    const time = new Date(data.time).toLocaleTimeString([], { 
+      
+      const time = new Date(data.time).toLocaleTimeString([], { 
         hour: '2-digit', 
         minute: '2-digit' 
-    });
-
-    const formattedText = formatText(data.text).replace(/\n/g, '<br>');
-
-    messageElement.innerHTML = `
+      });
+  
+      messageElement.innerHTML = `
         <div class="message-info">
-            <span class="message-user">${isServerMessage ? data.user : (isSent ? 'Tú' : data.user)}</span>
-            <span class="message-time">${time}</span>
+          <span class="message-user">${isServerMessage ? data.user : (isSent ? 'Tú' : data.user)}</span>
+          <span class="message-time">${time}</span>
         </div>
-        <div class="message-text">${formattedText}</div>
-    `;
-
-    if (data.id) {
-        messageElement.dataset.messageId = data.id;
+        <div class="message-text">${formatText(data.text)}</div>
+      `;
+  
+      return messageElement;
     }
-
-    return messageElement;
-}
-
-// Escuchar nuevos mensajes del servidor
-socket.on('new-message', (data) => {
-    if (data.user === user && pendingMessages.has(data.id)) {
+  
+    function formatText(text) {
+      const maxChars = 45;
+      let result = '';
+      let currentLine = '';
+  
+      text.split(' ').forEach(word => {
+        if (currentLine.length + word.length > maxChars) {
+          result += `<br>${word}`;
+          currentLine = word;
+        } else {
+          result += (currentLine ? ' ' : '') + word;
+          currentLine += (currentLine ? ' ' : '') + word;
+        }
+      });
+  
+      return result;
+    }
+  
+    socket.on('new-message', (data) => {
+      if (pendingMessages.has(data.id)) {
         pendingMessages.delete(data.id);
         return;
-    }
-    
-    const isSent = data.user === user;
-    const messageElement = createMessageElement(data, isSent);
-    messagesDiv.appendChild(messageElement);
-    scrollToBottom();
-});
-
-// Escuchar mensajes anteriores
-socket.on('previous-messages', (msgs) => {
-    msgs.forEach(msg => {
+      }
+      
+      const isSent = data.user === user || data.user === 'Tú';
+      const messageElement = createMessageElement(data, isSent);
+      messagesDiv.appendChild(messageElement);
+      scrollToBottom();
+    });
+  
+    socket.on('previous-messages', (msgs) => {
+      msgs.forEach(msg => {
         const isSent = msg.user === user;
         const messageElement = createMessageElement(msg, isSent);
         messagesDiv.appendChild(messageElement);
+      });
+      scrollToBottom();
     });
-    scrollToBottom();
-});
-
-// Función para enviar mensaje
-function sendMessage() {
-    const text = messageInput.value.trim();
-    if (text) {
-        const cleanedText = text.replace(/\s+/g, ' ').replace(/\n+/g, '\n');
-        
+  
+    socket.on('users-count', (count) => {
+      onlineCount.textContent = count;
+    });
+  
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (text) {
         const messageData = {
-            user,
-            text: cleanedText,
-            id: Date.now().toString(),
-            time: new Date().toISOString()
+          user,
+          text,
+          id: Date.now().toString(),
+          time: new Date().toISOString()
         };
         
         pendingMessages.add(messageData.id);
@@ -117,26 +99,17 @@ function sendMessage() {
         
         socket.emit('send-message', messageData);
         messageInput.value = '';
+      }
     }
-}
-
-// Función para hacer scroll al final
-function scrollToBottom() {
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-// Enviar mensaje al presionar Enter
-messageInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  
+    function scrollToBottom() {
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         sendMessage();
-    }
-});
-
-// Permitir Shift+Enter para saltos de línea manuales
-messageInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.shiftKey) {
-        e.preventDefault();
-        messageInput.value += '\n';
-    }
-});
+      }
+    });
+  });
